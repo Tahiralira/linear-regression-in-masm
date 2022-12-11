@@ -1,0 +1,89 @@
+TITLE Reading File and Input to Array (ReadFile.asm)
+
+; Opens, reads, and saves text file to array
+ 
+INCLUDE Irvine32.inc
+INCLUDELIB Irvine32.lib
+INCLUDELIB \masm32\lib\kernel32.lib
+INCLUDELIB \masm32\lib\User32.lib
+
+INCLUDE macros.inc
+
+BUFFER_SIZE = 1024
+
+.data
+titleStr BYTE "Cancer Growth Linear Regression",0
+filename    BYTE 80 DUP(0)
+
+.data?
+buffer BYTE BUFFER_SIZE DUP(?)
+datarr DWORD BUFFER_SIZE DUP(?)
+.code
+main PROC
+LOCAL fileHandle:DWORD
+; Input File name (cancer2020.txt)
+	mWrite "Enter an input filename: "
+	mov	edx,OFFSET filename
+	mov	ecx,SIZEOF filename
+	call	Readstring
+INVOKE SetConsoleTitle, ADDR titleStr
+
+; Open the cancer2020 file for input
+	mov	edx,OFFSET filename
+	call	OpenInputFile
+	mov	fileHandle,eax
+
+; Check for errors.
+	cmp	eax,INVALID_HANDLE_VALUE ; error opening file?
+	jne	file_ok					 ; no: skip
+	mWrite <"Cannot open file",0dh,0ah>
+	jmp	quit	
+	
+file_ok:
+
+; Read the file into array.
+
+mov esi,0
+invoke SetFilePointer,filehandle,0,NULL,FILE_BEGIN
+mov ecx,10
+l2:
+mov ebx,ecx
+	mov	edx,OFFSET buffer
+	mov	ecx,11
+	mov eax,filehandle
+	call	ReadFromFile
+	call	Crlf
+	mov	edx,offset buffer
+	mov datarr[esi],edx
+	;mov eax,datarr
+	mov eax,edx
+	call writestring
+	;mov datarr[],eax
+	call	Crlf
+	call	Crlf
+	mov ecx,ebx
+	add esi,4
+	loop l2
+
+	;invoke ReadString, "cancer2020.txt", addr buffer,100
+	;invoke GetString, addr buffer, addr array,100
+	
+close_file:
+	mov	eax,fileHandle
+	call	CloseFile
+
+printarr:
+mov  esi, OFFSET datarr
+mov  ecx, 10
+
+L1:
+mov  eax, [esi]
+call writedec
+call Crlf
+add  esi, 4
+loop L1 
+quit:
+call ReadChar ; pause before closing
+	exit
+main ENDP
+END main
